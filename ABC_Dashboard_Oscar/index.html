@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inventory Command Center</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#1d1d1f;
+      --muted:#6e6e73;
+      --line:#e5e5e7;
+      --soft:#f5f5f7;
+      --accent:#0071e3;
+      --danger:#b3261e;
+      --shadow: 0 12px 30px rgba(0,0,0,.06);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+      color:var(--text);
+      background:var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Apple-like nav */
+    .nav{
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 12px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight: 650;
+      letter-spacing:.2px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(0,113,227,.08);
+    }
+    .nav a{
+      color: var(--text);
+      text-decoration:none;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      transition: background .15s ease;
+    }
+    .nav a:hover{ background: rgba(0,0,0,0.04); }
+    .nav a.active{
+      background: rgba(0,113,227,0.10);
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    /* Layout */
+    .wrap{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 26px 18px 44px;
+    }
+
+    .hero{
+      padding: 6px 0 16px;
+    }
+    .hero h1{
+      margin: 0 0 8px;
+      font-size: 36px;
+      line-height: 1.12;
+      letter-spacing: -0.6px;
+    }
+    .hero p{
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 820px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .card h2{
+      margin: 0 0 6px;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+    }
+    .sub{
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    /* Form */
+    .form{
+      display:grid;
+      grid-template-columns: 1.2fr .7fr .7fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 6px;
+    }
+    @media (max-width: 760px){
+      .form{ grid-template-columns: 1fr 1fr; }
+      .form .btn.primary{ grid-column: 1 / -1; }
+    }
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    input{
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      outline:none;
+      font-size: 14px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus{
+      border-color: rgba(0,113,227,0.55);
+      box-shadow: 0 0 0 4px rgba(0,113,227,0.12);
+    }
+
+    /* Buttons */
+    .actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn{
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+      transition: transform .05s ease, background .15s ease;
+    }
+    .btn:hover{ background: rgba(0,0,0,0.03); }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{
+      border-color: rgba(0,113,227,0.25);
+      background: rgba(0,113,227,0.10);
+      color: var(--accent);
+    }
+    .btn.danger{
+      border-color: rgba(179,38,30,0.25);
+      background: rgba(179,38,30,0.08);
+      color: var(--danger);
+    }
+
+    /* Message */
+    .msg{
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 40px;
+      display:flex;
+      align-items:center;
+    }
+    .msg.ok{
+      border-color: rgba(0,113,227,0.25);
+      color: var(--text);
+      background: rgba(0,113,227,0.08);
+    }
+    .msg.error{
+      border-color: rgba(179,38,30,0.25);
+      color: var(--danger);
+      background: rgba(179,38,30,0.08);
+    }
+
+    /* Table */
+    .table-wrap{
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+    }
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td{
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 13px;
+    }
+    th{
+      background: var(--soft);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .2px;
+    }
+    tr:last-child td{ border-bottom: none; }
+
+    .mini-btn{
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 7px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .mini-btn:hover{ background: rgba(0,0,0,0.03); }
+
+    /* Chart */
+    canvas{ max-height: 340px; }
+  </style>
+</head>
+
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <div class="brand">
+        <span class="dot"></span>
+        Inventory Command Center
+      </div>
+      <nav aria-label="Primary navigation">
+        <a class="active" href="index.html">Dashboard</a>
+        <a href="about.html">Developer Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Warehouse Inventory</h1>
+      <p>
+        Track stock levels and item value in one place. Data is saved locally in your browser and the chart updates automatically.
+      </p>
+    </section>
+
+    <section class="grid">
+      <!-- Left -->
+      <div class="card">
+        <h2>Inventory</h2>
+        <p class="sub">Add items with quantity and price. Duplicate item names are not allowed.</p>
+
+        <div class="form">
+          <div>
+            <label for="itemName">Item</label>
+            <input id="itemName" type="text" placeholder="e.g., Boxes" />
+          </div>
+          <div>
+            <label for="qty">Quantity</label>
+            <input id="qty" type="number" min="0" step="1" placeholder="e.g., 25" />
+          </div>
+          <div>
+            <label for="price">Unit Price</label>
+            <input id="price" type="number" min="0" step="0.01" placeholder="e.g., 4.99" />
+          </div>
+          <button class="btn primary" id="addBtn">Add</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn danger" id="clearBtn">Clear All</button>
+        </div>
+
+        <div class="msg" id="message">Ready.</div>
+
+        <div class="table-wrap">
+          <table aria-label="Inventory table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total Value</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="card">
+        <h2>Stock Overview</h2>
+        <p class="sub">Quantity by item.</p>
+        <canvas id="invChart"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ====== localStorage ======
+    const STORAGE_KEY = "bus237_inventory_apple_style_v2";
+
+    function loadInventory(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      try{
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }catch{
+        return [];
+      }
+    }
+    function saveInventory(items){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    // ====== Helpers ======
+    function normalizeName(name){ return name.trim().toLowerCase(); }
+    function isWholeNumber(n){ return Number.isInteger(n) && n >= 0; }
+    function money(n){ return "$" + n.toFixed(2); }
+
+    // ====== Elements ======
+    const itemNameEl = document.getElementById("itemName");
+    const qtyEl = document.getElementById("qty");
+    const priceEl = document.getElementById("price");
+    const addBtn = document.getElementById("addBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const messageEl = document.getElementById("message");
+    const tableBody = document.getElementById("tableBody");
+
+    function setMessage(text, type="info"){
+      messageEl.className = "msg";
+      if(type === "ok") messageEl.classList.add("ok");
+      if(type === "error") messageEl.classList.add("error");
+      messageEl.textContent = text;
+    }
+
+    // ====== Chart ======
+    const ctx = document.getElementById("invChart");
+    let chart;
+
+    function updateChart(items){
+      const labels = items.map(i => i.name);
+      const data = items.map(i => i.qty);
+
+      if(!chart){
+        chart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{ label: "Quantity", data }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: true } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }else{
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+      }
+    }
+
+    // ====== Render ======
+    function render(){
+      const items = loadInventory();
+      tableBody.innerHTML = "";
+
+      for(const item of items){
+        const tr = document.createElement("tr");
+        const total = item.qty * item.price;
+
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>${money(item.price)}</td>
+          <td>${money(total)}</td>
+          <td><button class="mini-btn" data-del="${item.name}">Delete</button></td>
+        `;
+        tableBody.appendChild(tr);
+      }
+
+      tableBody.querySelectorAll("[data-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const name = btn.getAttribute("data-del");
+          const updated = loadInventory().filter(i => i.name !== name);
+          saveInventory(updated);
+          setMessage(`Removed: ${name}`, "ok");
+          render();
+        });
+      });
+
+      updateChart(items);
+    }
+
+    // ====== Add item (rubric rules) ======
+    addBtn.addEventListener("click", () => {
+      const name = itemNameEl.value.trim();
+      const qtyNum = Number(qtyEl.value);
+      const priceNum = Number(priceEl.value);
+
+      if(!name){
+        setMessage("Enter an item name.", "error");
+        return;
+      }
+      if(!Number.isFinite(qtyNum) || !isWholeNumber(qtyNum)){
+        setMessage("Quantity must be a whole number (0 or higher).", "error");
+        return;
+      }
+      if(!Number.isFinite(priceNum) || priceNum < 0){
+        setMessage("Unit price must be 0 or higher.", "error");
+        return;
+      }
+
+      const items = loadInventory();
+
+      // No duplicates (case-insensitive)
+      const duplicate = items.some(i => normalizeName(i.name) === normalizeName(name));
+      if(duplicate){
+        setMessage("This item already exists. Use a different name.", "error");
+        return;
+      }
+
+      items.push({ name, qty: qtyNum, price: Number(priceNum.toFixed(2)) });
+      saveInventory(items);
+
+      itemNameEl.value = "";
+      qtyEl.value = "";
+      priceEl.value = "";
+
+      setMessage("Item added.", "ok");
+      render();
+    });
+
+    // ====== Clear all ======
+    clearBtn.addEventListener("click", () => {
+      const items = loadInventory();
+      if(items.length === 0){
+        setMessage("Nothing to clear.", "error");
+        return;
+      }
+      localStorage.removeItem(STORAGE_KEY);
+      setMessage("All items cleared.", "ok");
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
